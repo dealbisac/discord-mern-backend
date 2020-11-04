@@ -94,6 +94,20 @@ app.get('/showData', (req, res) => {
     })
 })
 
+// API to show conversation 
+app.get('/showConversation', (req, res) => {
+    const id = req.query.id;
+
+    mongoData.find({ _id: id }, (err, data) => {
+        if (err) {
+            res.status(500).send(err)
+        } else {
+            res.status(201).send(data)
+        }
+
+    })
+})
+
 
 
 //Listener
