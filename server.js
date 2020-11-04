@@ -3,12 +3,21 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoData from './mongoData.js';
+import Pusher from 'pusher';
 
 dotenv.config();
 
 //App Config
 const app = express();
 const port = process.env.PORT || 8002;
+
+const pusher = new Pusher({
+    appId: "1102277",
+    key: "22990ff652e22adfad89",
+    secret: "712ffc132ee6403fd7d7",
+    cluster: "ap2",
+    useTLS: true
+});
 
 //Middlewares
 app.use(express.json());
@@ -22,6 +31,27 @@ mongoose.connect(mongoURI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
+
+mongoose.connection.once('open', () => {
+    console.log('DB Connected')
+
+    const changeStream = mongoose.connection.collection('conversations').watch()
+
+    changeStream.on('change', (change) => {
+        if (change.operationType === 'insert') {
+            pusher.trigger('channels', 'newChannel', {
+                'change': change
+            });
+        } else if (change.operationType === 'update') {
+            pusher.trigger('conversation', 'newMessage', {
+                'change': change
+            });
+        } else {
+            console.log('Error Trigerring Pusher')
+        }
+    })
+})
+
 
 //Api Routes
 app.get('/', (req, res) => res.status(200).send('Hello World'));
